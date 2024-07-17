@@ -49,14 +49,14 @@ library(bfo.db)
 db <- bfo.db::DatabaseConnector$new(config_path = "path/to/config.yml")
 
 # Example of initializing a database connection with a credentials
-db <- db <- bfo.db::DatabaseConnector$new(dbname = XXXXXXX, 
-                                          host = XXXXXXX, 
-                                          user = XXXXXXX, 
-                                          password = "XXXXXXX", 
-                                          port = XXXXXXX, 
-                                          sslmode = "require", 
-                                          sslrootcert = "path/to/XXXXXXX.pem"
-                                          )
+db <- bfo.db::DatabaseConnector$new(dbname = XXXXXXX, 
+                                    host = XXXXXXX, 
+                                    user = XXXXXXX, 
+                                    password = "XXXXXXX", 
+                                    port = XXXXXXX, 
+                                    sslmode = "require", 
+                                    sslrootcert = "path/to/XXXXXXX.pem"
+                                    )
 
 # Retrieve a view from the database
 view_connection <- db$get_view("view_name")
