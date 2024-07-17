@@ -1,33 +1,43 @@
+name: Build README
+
 on:
   push:
-    paths: ['**.Rmd']
-
-name: render-rmarkdown
-
-permissions: read-all
+    branches:
+      - main
+    paths:
+      - README.Rmd
+  pull_request:
+    branches:
+      - main
+    paths:
+      - README.Rmd
 
 jobs:
-  render-rmarkdown:
+  build-readme:
     runs-on: ubuntu-latest
-    env:
-      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      - uses: r-lib/actions/setup-pandoc@v2
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
 
-      - uses: r-lib/actions/setup-r@v2
+    - name: Install dependencies
+      run: |
+        install.packages('rmarkdown')
+        install.packages('knitr')
 
-      - uses: r-lib/actions/setup-renv@v2
+    - name: Knit README.Rmd
+      run: |
+        Rscript -e 'rmarkdown::render("README.Rmd")'
 
-      - name: Render Rmarkdown files and Commit Results
-        run: |
-          RMD_PATH=($(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '[.]Rmd$'))
-          Rscript -e 'for (f in commandArgs(TRUE)) if (file.exists(f)) rmarkdown::render(f)' ${RMD_PATH[*]}
-          git config --local user.name "$GITHUB_ACTOR"
-          git config --local user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git commit ${RMD_PATH[*]/.Rmd/.md} -m 'Re-build Rmarkdown files' || echo "No changes to commit"
-          git push origin || echo "No changes to commit"
+    - name: Commit and push README.md
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add README.md
+        git commit -m 'Auto-build README [skip ci]' || echo "No changes to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
