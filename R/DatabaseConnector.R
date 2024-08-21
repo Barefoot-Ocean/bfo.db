@@ -72,6 +72,17 @@ DatabaseConnector <- R6::R6Class(
       tbl(self$con, view_name)
     },
 
+    #' Collect a view from the database.
+    #'
+    #' @param view_name Name of the view to retrieve.
+    #' @return A tbl object representing the specified view.
+    collect_view = function(view_name) {
+      if (is.null(self$con)) {
+        stop("Connection has not been initialized.")
+      }
+      tbl(self$con, view_name) |> collect()
+    },
+
     #' Finalize the database connection.
     #'
     #' @description Closes the database connection.
