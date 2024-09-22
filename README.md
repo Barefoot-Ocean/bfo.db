@@ -46,6 +46,16 @@ view_connection <- db$get_view("view_name")
 db$finalize()
 ```
 
+### Get user information by email
+
+``` r
+library(bfo.db)
+db <- bfo.db::DatabaseConnector$new(config_path = "path/to/config.yml")
+
+# Get user information by email
+db$get_user_information(user_email = 'anastasiia@barefootocean.org')
+```
+
 ## Features
 
 - Easy initialization of database connections from a configuration file
@@ -68,6 +78,8 @@ db$finalize()
 - later (== 1.3.2)
 - rlang (== 1.1.4)
 - assertthat (== 0.2.1)
+- glue (== 1.7.0),
+- jsonlite (== 1.8.8),
 
 ## Contact
 
