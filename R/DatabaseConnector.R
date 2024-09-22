@@ -11,6 +11,7 @@
 #' @import stringr
 #' @import tibble
 #' @import pool
+#' @import jsonlite
 #'
 #' @export
 DatabaseConnector <- R6::R6Class(
@@ -81,6 +82,37 @@ DatabaseConnector <- R6::R6Class(
         stop("Connection has not been initialized.")
       }
       tbl(self$con, view_name) |> collect()
+    },
+
+    #' Get user information from the database.
+    #'
+    #' @param user_email Email of the user to retrieve.
+    #' @return A list object representing the information about user.
+    get_user_information = function(user_email) {
+      # Check if the database connection is initialized
+      if (is.null(self$con)) {
+        stop("Connection has not been initialized.")
+      }
+      # Check if the user email is provided
+      if (is.null(user_email) || nchar(user_email) == 0) {
+        stop("User email must be provided.")
+      }
+
+      # Use parameterized query to prevent SQL injection
+      query <- glue::glue("SELECT user_json FROM shiny_user_info_json WHERE email = '{user_email}'")
+      user_info <- dbGetQuery(self$con, query)
+
+      # Check if the user was found
+      if (length(user_info) == 0) {
+        stop("User not found.")
+      }
+
+      # Parse the user JSON
+      result <- jsonlite::fromJSON(user_info$user_json)
+      # Split the user_countries string by newline character
+      result$user_countries <- strsplit(result$user_countries, "\n")[[1]]
+
+      return(result)
     },
 
     #' Finalize the database connection.
