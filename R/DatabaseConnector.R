@@ -103,7 +103,7 @@ DatabaseConnector <- R6::R6Class(
       user_info <- dbGetQuery(self$con, query)
 
       # Check if the user was found
-      if (length(user_info) == 0) {
+      if (nrow(user_info) < 1) {
         stop("User not found.")
       }
 
