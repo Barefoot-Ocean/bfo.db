@@ -99,7 +99,7 @@ DatabaseConnector <- R6::R6Class(
       }
 
       # Use parameterized query to prevent SQL injection
-      query <- glue::glue("SELECT user_json FROM shiny_user_info_json WHERE email = '{user_email}'")
+      query <- glue::glue("SELECT user_json FROM shiny_user_info_json WHERE email = '{tolower(user_email)}'")
       user_info <- dbGetQuery(self$con, query)
 
       # Check if the user was found
