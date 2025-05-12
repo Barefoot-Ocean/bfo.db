@@ -150,7 +150,9 @@ global_ref_data <- db$collect_view("global_ref")
 ``` r
 global_ref_data <- db$get_view("global_ref")
 # You can apply filters, joins, etc. before collecting:
-global_ref_data <- dplyr::collect(global_ref_data)
+global_ref_data <- global_ref_data |>
+      dplyr::filter(country == "IDN") |>
+      dplyr::collect()
 ```
 
 ------------------------------------------------------------------------
@@ -220,7 +222,7 @@ You can create a new token at: <https://github.com/settings/tokens>
 
 ------------------------------------------------------------------------
 
-## Development notes
+## Development notes (only for developers)
 
 
 `{bfo.db}` is an R package that facilitates database connections and view retrieval using `RPostgres`, `pool`, and other related packages.
