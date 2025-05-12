@@ -10,13 +10,13 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Depends:
-    R (>= 4.2.2)
+    R (>= 4.1.0)
 Imports:
-    DBI (== 1.2.3),
-    RPostgres (== 1.4.7),
+    DBI,
+    RPostgres,
     dplyr,
-    dbplyr (== 2.5.0),
-    pool (== 1.0.3),
+    dbplyr,
+    pool,
     config,
     stringr,
     tibble,
@@ -26,11 +26,5 @@ Imports:
     assertthat,
     glue,
     jsonlite
-Suggests:
-    DBI (== 1.2.3),
-    RPostgres (== 1.4.7),
-    dplyr,
-    dbplyr (== 2.5.0),
-    pool (== 1.0.3)
 RoxygenNote: 7.3.2
 
