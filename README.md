@@ -60,7 +60,7 @@ Wait until you see a message like:
 To install the `{bfo.db}` package (recommended version `v0.2.0`), run:
 
 ``` r
-pak::pak("Barefoot-Ocean/bfo.db@v0.2.0")
+pak::pak("Barefoot-Ocean/bfo.db@v0.2.0", upgrade = TRUE)
 ```
 
 This version is recommended for stable database interaction.
