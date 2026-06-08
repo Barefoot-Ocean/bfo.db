@@ -3,3 +3,13 @@
 ^.*\.Rproj$
 ^\.Rproj\.user$
 ^README\.Rmd$
+^LICENSE\.md$
+^dev$
+^\.idea$
+^\.github$
+^\.RData$
+^\.Rhistory$
+\.DS_Store$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$

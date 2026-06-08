@@ -1,0 +1,21 @@
+url: https://barefoot-ocean.github.io/bfo.db
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [github]
+
+reference:
+- title: Database connection
+  desc: Connect to the database and retrieve views.
+  contents:
+  - DatabaseConnector
+
+articles:
+- title: Guides
+  navbar: ~
+  contents:
+  - getting-started

@@ -74,10 +74,10 @@ Wait until you see a message like:
 
 ## 🔌 Step 3: Install the `{bfo.db}` Package
 
-To install the `{bfo.db}` package (recommended version `v0.2.0`), run:
+To install the `{bfo.db}` package (recommended version `v0.3.0`), run:
 
 ``` r
-pak::pak("Barefoot-Ocean/bfo.db@v0.2.0")
+pak::pak("Barefoot-Ocean/bfo.db@v0.3.0", upgrade = TRUE)
 ```
 
 This version is recommended for stable database interaction.
@@ -96,7 +96,12 @@ library(bfo.db)
 
 ## 🔐 Step 5: Set Up Database Credentials
 
-You can connect to the database in one of two ways:
+You can connect to the database in one of two ways.
+
+> 🛡️ **Security:** Your database **host, user, and password are secrets.** Keep
+> them in a `config.yml` or `.Renviron` file that is **never committed to git**
+> (add it to `.gitignore`). The SSL certificate is *not* a secret — see
+> [SSL certificate](#-ssl-certificate-sslrootcert) below.
 
 ### Option 1: Use a `config.yml` File
 
@@ -108,13 +113,14 @@ db <- bfo.db::DatabaseConnector$new(config_path = "path/to/config.yml")
 
 ``` yaml
 default:
-  ssl_key: XXXXXXXXXX
   bfo_data:
     dbname: XXXXXX
     host: XXXXXX
     user: XXXXXX
     password: XXXXXX
     port: XXXXXX
+  # Optional. Omit to use the AWS RDS us-east-1 CA bundle shipped with the package.
+  # ssl_key: path/to/your-cert.pem
 ```
 
 ------------------------------------------------------------------------
@@ -128,10 +134,38 @@ db <- bfo.db::DatabaseConnector$new(
   user = "XXXXXXX",
   password = "XXXXXXX",
   port = XXXXX,
-  sslmode = "require",
-  sslrootcert = "path/to/your-cert.pem"
+  sslmode = "require"
+  # sslrootcert is optional — defaults to the bundled AWS RDS us-east-1 CA bundle.
 )
 ```
+
+------------------------------------------------------------------------
+
+### 🔏 SSL certificate (`sslrootcert`)
+
+The connection uses TLS (`sslmode = "require"`), which needs the AWS RDS
+**Certificate Authority bundle** to verify the server's identity. This bundle
+is **public** (published by AWS) — it is **not** a credential and contains no
+secrets.
+
+For convenience, the AWS CA bundles ship **inside this package**, so by default
+you don't need to download or manage any `.pem` file. When you omit
+`sslrootcert` (or `ssl_key` in `config.yml`), the package automatically uses the
+**global** bundle (which covers every AWS region), falling back to the
+`us-east-1` bundle:
+
+``` r
+# default resolution
+system.file("cert", "global-bundle.pem", package = "bfo.db")   # preferred
+system.file("cert", "us-east-1-bundle.pem", package = "bfo.db") # fallback
+```
+
+You only need to set `sslrootcert` (or `ssl_key`) yourself if you want to pin a
+specific certificate or supply your own. The latest bundles are always
+available from AWS:
+
+-   Global: <https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem>
+-   Region: <https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem>
 
 ------------------------------------------------------------------------
 
@@ -159,11 +193,14 @@ global_ref_data <- global_ref_data |>
 
 ## 🔒 Step 7: Close the Database Connection
 
-Once you're done, don't forget to clean up:
+Once you're done, return the pooled connections and close the pool:
 
 ``` r
-db$finalize()
+db$close()        # (db$disconnect() is an alias)
 ```
+
+`close()` is safe to call more than once, and if you forget, the pool is also
+closed automatically when the object is garbage-collected.
 
 ------------------------------------------------------------------------
 
@@ -218,7 +255,7 @@ You can create a new token at: <https://github.com/settings/tokens>
 
 ## Contact
 
--   Maintainer: Anastasiia Kostiv [[anastasiia.kostiv\@bluventures.org](mailto:anastasiia.kostiv@bluventures.org){.email}]
+-   Maintainer: Anastasiia Kostiv [[anastasiia.kostiv\@blueventures.org](mailto:anastasiia.kostiv@blueventures.org){.email}]
 
 ------------------------------------------------------------------------
 
@@ -247,21 +284,21 @@ library(bfo.db)
 # Example of initializing a database connection with a configuration file
 db <- bfo.db::DatabaseConnector$new(config_path = "path/to/config.yml")
 
-# Example of initializing a database connection with a credentials
-db <- bfo.db::DatabaseConnector$new(dbname = XXXXXXX, 
-                                    host = XXXXXXX, 
-                                    user = XXXXXXX, 
-                                    password = "XXXXXXX", 
-                                    port = XXXXXXX, 
-                                    sslmode = "require", 
-                                    sslrootcert = "path/to/XXXXXXX.pem"
+# Example of initializing a database connection with credentials
+# (sslrootcert is optional; defaults to the bundled AWS RDS us-east-1 CA bundle)
+db <- bfo.db::DatabaseConnector$new(dbname = XXXXXXX,
+                                    host = XXXXXXX,
+                                    user = XXXXXXX,
+                                    password = "XXXXXXX",
+                                    port = XXXXXXX,
+                                    sslmode = "require"
                                     )
 
 # Retrieve a view from the database
 view_connection <- db$get_view("view_name")
 
 # Close the database connection
-db$finalize()
+db$close()
 ```
 
 #### Get user information by email
@@ -278,11 +315,12 @@ db$get_user_information(user_email = 'anastasiia@barefootocean.org')
 
 -   Easy initialization of database connections from a configuration file or direct parameters.
 -   Retrieval of database views using get_view() method.
--   Automatic closing of database connections with finalize() method.
+-   Informative, step-by-step console messages (set `quiet = TRUE` to silence).
+-   Safe, idempotent pool cleanup via close()/disconnect(), with automatic cleanup on garbage collection.
 
 ### Dependencies
 
--   R (\>= 4.2.2)
+-   R (\>= 4.1.0; developed and tested on R 4.4)
 -   DBI (== 1.2.3)
 -   RPostgres (== 1.4.7)
 -   dplyr (== 1.1.4)
@@ -291,10 +329,55 @@ db$get_user_information(user_email = 'anastasiia@barefootocean.org')
 -   stringr (== 1.5.1)
 -   tibble (== 3.2.1)
 -   pool (== 1.0.3)
--   R6 (== 2.5.1)
+-   R6 (== 2.6.1)
 -   later (== 1.3.2)
--   rlang (== 1.1.4)
+-   rlang (== 1.1.6)
 -   assertthat (== 0.2.1)
--   glue (== 1.7.0),
--   jsonlite (== 1.8.8),
+-   glue (== 1.7.0)
+-   jsonlite (== 2.0.0)
+
+### Release process (maintainers)
+
+The package uses `renv` for reproducible dependencies and ships the AWS RDS CA
+bundles under `inst/cert/`. To cut a new release:
+
+1.  Make your code/doc changes.
+2.  Bump `Version:` in `DESCRIPTION` and add an entry to `NEWS.md`.
+3.  Regenerate docs and the README:
+
+    ``` r
+    roxygen2::roxygenise()        # updates NAMESPACE + man/
+    rmarkdown::render("README.Rmd")  # regenerates README.md
+    ```
+
+4.  Refresh the lockfile against your current R/library:
+
+    ``` r
+    renv::snapshot(type = "implicit", prompt = FALSE)
+    ```
+
+5.  Sanity-check the build (the CA bundles must appear under `inst/cert/`):
+
+    ``` r
+    devtools::build()
+    ```
+
+6.  Commit, tag, and push the release (tag must match the version so
+    `pak::pak("Barefoot-Ocean/bfo.db@vX.Y.Z")` resolves):
+
+    ``` bash
+    git tag v0.3.0
+    git push origin main --tags
+    ```
+
+7.  Optionally create a GitHub release from the tag.
+
+To refresh the bundled certificates from AWS:
+
+``` bash
+curl -fsSL -o inst/cert/global-bundle.pem \
+  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+curl -fsSL -o inst/cert/us-east-1-bundle.pem \
+  https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem
+```
 

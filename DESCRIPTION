@@ -1,12 +1,16 @@
 Package: bfo.db
 Type: Package
-Title: What the Package Does (Title Case)
-Version: 0.2.0
-Author: Anastasiia Kostiv
-Maintainer: <anastasiia.kostiv@blueventures.org>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Title: Database Access for the Barefoot Ocean Data Platform
+Version: 0.3.0
+Authors@R:
+    person("Anastasiia", "Kostiv", email = "anastasiia.kostiv@blueventures.org",
+           role = c("aut", "cre"))
+Description: Provides a convenient R6 interface for connecting to the Barefoot
+    Ocean PostgreSQL database over a secure (TLS) connection and retrieving
+    database views. Connections can be configured from a 'config.yml' file or
+    from direct parameters, and the AWS RDS 'us-east-1' CA bundle required for
+    SSL verification is shipped with the package.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Depends:
@@ -25,6 +29,16 @@ Imports:
     rlang,
     assertthat,
     glue,
-    jsonlite
-RoxygenNote: 7.3.2
-
+    jsonlite,
+    cli
+Suggests:
+    knitr,
+    rmarkdown,
+    pkgdown,
+    devtools,
+    roxygen2,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+URL: https://github.com/Barefoot-Ocean/bfo.db, https://barefoot-ocean.github.io/bfo.db
+BugReports: https://github.com/Barefoot-Ocean/bfo.db/issues
+RoxygenNote: 7.3.3

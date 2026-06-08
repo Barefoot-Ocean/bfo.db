@@ -10,7 +10,9 @@ R6 Class representing a database connection.
 }
 \details{
 This class provides methods to initialize a database connection either using
-a configuration file or direct parameters, and retrieve views from the database.
+a configuration file or direct parameters, and retrieve views from the
+database. Each step prints a short, informative message explaining what is
+happening and what to do next; set `quiet = TRUE` to silence them.
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
@@ -25,7 +27,10 @@ Initialize the database connection.}
 \itemize{
 \item \href{#method-DatabaseConnector-new}{\code{DatabaseConnector$new()}}
 \item \href{#method-DatabaseConnector-get_view}{\code{DatabaseConnector$get_view()}}
-\item \href{#method-DatabaseConnector-finalize}{\code{DatabaseConnector$finalize()}}
+\item \href{#method-DatabaseConnector-collect_view}{\code{DatabaseConnector$collect_view()}}
+\item \href{#method-DatabaseConnector-get_user_information}{\code{DatabaseConnector$get_user_information()}}
+\item \href{#method-DatabaseConnector-close}{\code{DatabaseConnector$close()}}
+\item \href{#method-DatabaseConnector-disconnect}{\code{DatabaseConnector$disconnect()}}
 \item \href{#method-DatabaseConnector-clone}{\code{DatabaseConnector$clone()}}
 }
 }
@@ -42,7 +47,8 @@ Initialize the database connection.}
   user = NULL,
   password = NULL,
   sslmode = "require",
-  sslrootcert = NULL
+  sslrootcert = NULL,
+  quiet = FALSE
 )}\if{html}{\out{</div>}}
 }
 
@@ -63,7 +69,13 @@ Initialize the database connection.}
 
 \item{\code{sslmode}}{SSL mode for the database connection.}
 
-\item{\code{sslrootcert}}{Path to the SSL root certificate.
+\item{\code{sslrootcert}}{Path to the SSL root certificate. If `NULL`, the AWS
+RDS CA bundle shipped with this package is used (the global bundle,
+which covers all regions, falling back to the `us-east-1` bundle). The
+same default applies for `config.yml` connections when `ssl_key` is
+omitted. Pass a path here to use your own certificate instead.}
+
+\item{\code{quiet}}{Logical; if `TRUE`, suppress the informational CLI messages.
 Retrieve a view from the database.}
 }
 \if{html}{\out{</div>}}
@@ -86,18 +98,76 @@ Retrieve a view from the database.}
 }
 \subsection{Returns}{
 A tbl object representing the specified view.
-Finalize the database connection.
+Collect a view from the database.
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-DatabaseConnector-finalize"></a>}}
-\if{latex}{\out{\hypertarget{method-DatabaseConnector-finalize}{}}}
-\subsection{Method \code{finalize()}}{
-Closes the database connection.
+\if{html}{\out{<a id="method-DatabaseConnector-collect_view"></a>}}
+\if{latex}{\out{\hypertarget{method-DatabaseConnector-collect_view}{}}}
+\subsection{Method \code{collect_view()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{DatabaseConnector$finalize()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{DatabaseConnector$collect_view(view_name)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{view_name}}{Name of the view to retrieve.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A tbl object representing the specified view.
+Get user information from the database.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DatabaseConnector-get_user_information"></a>}}
+\if{latex}{\out{\hypertarget{method-DatabaseConnector-get_user_information}{}}}
+\subsection{Method \code{get_user_information()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{DatabaseConnector$get_user_information(user_email)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{user_email}}{Email of the user to retrieve.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+A list object representing the information about user.
+Close the database connection pool.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DatabaseConnector-close"></a>}}
+\if{latex}{\out{\hypertarget{method-DatabaseConnector-close}{}}}
+\subsection{Method \code{close()}}{
+Returns all pooled connections and closes the pool. Safe to
+  call more than once; closing an already-closed pool is a no-op.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{DatabaseConnector$close()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The `DatabaseConnector` object, invisibly.
+Close the database connection pool.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-DatabaseConnector-disconnect"></a>}}
+\if{latex}{\out{\hypertarget{method-DatabaseConnector-disconnect}{}}}
+\subsection{Method \code{disconnect()}}{
+Alias for `close()`.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{DatabaseConnector$disconnect()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+The `DatabaseConnector` object, invisibly.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-DatabaseConnector-clone"></a>}}
