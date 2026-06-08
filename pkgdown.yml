@@ -1,0 +1,9 @@
+pandoc: 3.8.3
+pkgdown: 2.2.0
+pkgdown_sha: ~
+articles:
+  getting-started: getting-started.html
+last_built: 2026-06-08T17:29Z
+urls:
+  reference: https://barefoot-ocean.github.io/bfo.db/reference
+  article: https://barefoot-ocean.github.io/bfo.db/articles
