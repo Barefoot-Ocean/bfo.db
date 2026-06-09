@@ -43,3 +43,4 @@ rsconnect/
 
 # pkgdown site (deployed to gh-pages)
 docs/
+dev/test.R
