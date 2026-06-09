@@ -94,75 +94,249 @@ library(bfo.db)
 
 ------------------------------------------------------------------------
 
-## 🔐 Step 5: Set Up Database Credentials
+## 🔐 Step 5: Set Up Your Database Credentials
 
-You can connect to the database in one of two ways.
+To connect, the package needs five pieces of information about the database:
 
-> 🛡️ **Security:** Your database **host, user, and password are secrets.** Keep
-> them in a `config.yml` or `.Renviron` file that is **never committed to git**
-> (add it to `.gitignore`). The SSL certificate is *not* a secret — see
-> [SSL certificate](#-ssl-certificate-sslrootcert) below.
+| Field | What it is | Example |
+|------------|-----------------------------------|------------------------|
+| `dbname` | The database name | `bfo` |
+| `host` | The server address | `bfo.abc123.us-east-1.rds.amazonaws.com` |
+| `port` | The network port | `5432` |
+| `user` | Your database username | `jane.doe` |
+| `password` | Your database password | `••••••••` |
 
-### Option 1: Use a `config.yml` File
+> *(Ask the Barefoot Ocean data team for these values if you don't have them.)*
+
+It also needs an SSL **certificate** — but you don't have to worry about that:
+the package ships one and uses it automatically (see *5d. Choosing the SSL
+certificate*, below).
+
+> 🛡️ **The one rule that matters:** your `user` and `password` are **secrets**.
+> Never paste them into a file that is shared, emailed, or committed to GitHub.
+> Every *recommended* method below keeps your secrets in a file that stays **only
+> on your computer**.
+
+### Which method should I use?
+
+There are three ways to provide your credentials. **If you're not sure, use
+Method A.**
+
+| Method | Best for | Your secrets live in |
+|------------------|--------------------------|----------------------------|
+| **A. A `config.yml` file** | Most people; a single analyst on one computer | a local `config.yml` (kept off GitHub) |
+| **B. `config.yml` + `.Renviron`** | Teams and shared projects with **many users** | each person's own `.Renviron` |
+| **C. Typed into the script** | Quick one-off tests only | the script itself ⚠️ |
+
+------------------------------------------------------------------------
+
+### Method A — Use a `config.yml` file *(recommended for most people)*
+
+A `config.yml` is a small text file that holds your connection settings. You
+create it once and reuse it.
+
+**1. Create the file.** In RStudio, run this to create and open it in the
+project you're working in:
 
 ``` r
-db <- bfo.db::DatabaseConnector$new(config_path = "path/to/config.yml")
+file.edit("config.yml")
 ```
 
-**Example `config.yml` structure:**
+**2. Paste in this template** and replace each `XXXXXX` with your real values
+(keep the indentation — YAML cares about spaces, and use 2 spaces, not tabs):
 
 ``` yaml
 default:
   bfo_data:
     dbname: XXXXXX
     host: XXXXXX
+    port: XXXXXX
     user: XXXXXX
     password: XXXXXX
-    port: XXXXXX
-  # Optional. Omit to use the AWS RDS us-east-1 CA bundle shipped with the package.
-  # ssl_key: path/to/your-cert.pem
+  # Optional — omit this line to use the certificate bundled with the package.
+  # ssl_key: path/to/your-own-cert.pem
 ```
+
+Save the file (Ctrl/Cmd + S).
+
+**3. Connect**, pointing at the file you just created:
+
+``` r
+db <- bfo.db::DatabaseConnector$new(config_path = "config.yml")
+```
+
+**4. Keep it private.** If your project is a Git repository, make sure
+`config.yml` is never committed:
+
+``` r
+usethis::use_git_ignore("config.yml")   # adds it to .gitignore for you
+```
+
+If you're not using `usethis`, just add a line containing `config.yml` to your
+`.gitignore` file by hand.
 
 ------------------------------------------------------------------------
 
-### Option 2: Provide Credentials Directly in the Script
+### Method B — `config.yml` + `.Renviron` *(recommended for teams / many users)*
+
+When several people share the same project (e.g. on GitHub), you don't want
+everyone's passwords sitting in a shared `config.yml`. The clean pattern is:
+
+-   a **single, shareable `config.yml`** that contains *no secrets* — it only
+    *refers to* environment variables; and
+-   a personal **`.Renviron`** file on each person's computer that holds *their
+    own* secret values.
+
+This way the same project works for **many users**, and each person's password
+never leaves their own machine.
+
+**1. Open your personal `.Renviron`.** The easiest way is with `usethis`:
+
+``` r
+# install.packages("usethis")   # if you don't have it yet
+usethis::edit_r_environ()            # opens your personal (user-level) .Renviron
+# usethis::edit_r_environ("project") # or one just for the current project
+```
+
+This opens (creating it if needed) a file where you store secrets as
+`NAME=value`, one per line. `.Renviron` is **not** R code — no quotes, no
+spaces around `=`:
+
+```
+BFO_DB_NAME=bfo
+BFO_DB_HOST=bfo.abc123.us-east-1.rds.amazonaws.com
+BFO_DB_PORT=5432
+BFO_DB_USER=jane.doe
+BFO_DB_PASSWORD=your-secret-password
+```
+
+> 💡 *Where does this file live?* Your user-level `.Renviron` is in your home
+> folder (`~/.Renviron`). You normally never need to find it by hand —
+> `usethis::edit_r_environ()` opens it for you.
+
+**2. Save the file and restart R.** `.Renviron` is only read when R starts, so
+restart your session (in RStudio: **Session → Restart R**) for the new values to
+take effect.
+
+**3. Write a `config.yml` that reads those variables** instead of holding the
+secrets directly. The `!expr` tag tells R to run a small expression —
+`Sys.getenv("…")` simply looks up a value from `.Renviron`:
+
+``` yaml
+default:
+  bfo_data:
+    dbname: !expr Sys.getenv("BFO_DB_NAME")
+    host: !expr Sys.getenv("BFO_DB_HOST")
+    port: !expr Sys.getenv("BFO_DB_PORT")
+    user: !expr Sys.getenv("BFO_DB_USER")
+    password: !expr Sys.getenv("BFO_DB_PASSWORD")
+```
+
+Because this file contains no real secrets, it is **safe to commit and share**.
+
+**4. Connect exactly as in Method A:**
+
+``` r
+db <- bfo.db::DatabaseConnector$new(config_path = "config.yml")
+```
+
+<details>
+
+<summary><b>Advanced: several connection profiles in one file</b></summary>
+
+`config.yml` can hold more than one named profile (for example a read-only and
+an admin login, or a staging server). Add extra top-level blocks and switch
+between them with the `R_CONFIG_ACTIVE` environment variable:
+
+``` yaml
+default:
+  bfo_data:
+    dbname: !expr Sys.getenv("BFO_DB_NAME")
+    host: !expr Sys.getenv("BFO_DB_HOST")
+    port: !expr Sys.getenv("BFO_DB_PORT")
+    user: !expr Sys.getenv("BFO_READONLY_USER")
+    password: !expr Sys.getenv("BFO_READONLY_PASSWORD")
+
+admin:
+  bfo_data:
+    dbname: !expr Sys.getenv("BFO_DB_NAME")
+    host: !expr Sys.getenv("BFO_DB_HOST")
+    port: !expr Sys.getenv("BFO_DB_PORT")
+    user: !expr Sys.getenv("BFO_ADMIN_USER")
+    password: !expr Sys.getenv("BFO_ADMIN_PASSWORD")
+```
+
+``` r
+Sys.setenv(R_CONFIG_ACTIVE = "admin")   # use the "admin" block; default is "default"
+db <- bfo.db::DatabaseConnector$new(config_path = "config.yml")
+```
+
+</details>
+
+------------------------------------------------------------------------
+
+### Method C — Type credentials directly in your script *(quick tests only)*
+
+You can pass everything straight to the connector. This is the fastest way to
+try a connection, but the password ends up **in your script**, so only use it
+for throwaway tests — and never save or share a script that contains a real
+password.
 
 ``` r
 db <- bfo.db::DatabaseConnector$new(
-  dbname = "XXXXXXX",
-  host = "XXXXXXX",
-  user = "XXXXXXX",
-  password = "XXXXXXX",
-  port = XXXXX,
-  sslmode = "require"
-  # sslrootcert is optional — defaults to the bundled AWS RDS us-east-1 CA bundle.
+  dbname   = "bfo",
+  host     = "bfo.abc123.us-east-1.rds.amazonaws.com",
+  port     = 5432,
+  user     = "jane.doe",
+  password = "your-secret-password",
+  sslmode  = "require"
+  # sslrootcert is optional — see 5d below.
+)
+```
+
+A safer middle ground is to keep the secrets in `.Renviron` (as in Method B) and
+read them in your script, so no password is ever written down:
+
+``` r
+db <- bfo.db::DatabaseConnector$new(
+  dbname   = Sys.getenv("BFO_DB_NAME"),
+  host     = Sys.getenv("BFO_DB_HOST"),
+  port     = Sys.getenv("BFO_DB_PORT"),
+  user     = Sys.getenv("BFO_DB_USER"),
+  password = Sys.getenv("BFO_DB_PASSWORD")
 )
 ```
 
 ------------------------------------------------------------------------
 
-### 🔏 SSL certificate (`sslrootcert`)
+### 5d. 🔏 Choosing the SSL certificate (the `.pem` file)
 
-The connection uses TLS (`sslmode = "require"`), which needs the AWS RDS
-**Certificate Authority bundle** to verify the server's identity. This bundle
-is **public** (published by AWS) — it is **not** a credential and contains no
-secrets.
+The connection is encrypted (`sslmode = "require"`), which needs the AWS RDS
+**Certificate Authority (CA) bundle** to verify the server's identity. Good news:
 
-For convenience, the AWS CA bundles ship **inside this package**, so by default
-you don't need to download or manage any `.pem` file. When you omit
-`sslrootcert` (or `ssl_key` in `config.yml`), the package automatically uses the
-**global** bundle (which covers every AWS region), falling back to the
-`us-east-1` bundle:
+-   **This is *not* a secret.** It's a public certificate published by AWS, so
+    it's completely safe to share or commit.
+-   **You don't have to manage it.** The package ships the AWS CA bundles
+    inside itself, and uses them automatically.
+
+**Most users should do nothing here** — just omit `sslrootcert` (and `ssl_key`),
+and the package uses the **global** bundle (which works for every AWS region),
+falling back to the `us-east-1` bundle. The defaults resolve to:
 
 ``` r
-# default resolution
-system.file("cert", "global-bundle.pem", package = "bfo.db")   # preferred
+system.file("cert", "global-bundle.pem", package = "bfo.db")   # used by default
 system.file("cert", "us-east-1-bundle.pem", package = "bfo.db") # fallback
 ```
 
-You only need to set `sslrootcert` (or `ssl_key`) yourself if you want to pin a
-specific certificate or supply your own. The latest bundles are always
-available from AWS:
+You only need to choose a certificate yourself in special cases:
+
+| You want to… | In `config.yml` set… | In a direct call set… |
+|-------------------|----------------------------|--------------------------|
+| Use the default (recommended) | *(leave `ssl_key` out)* | *(leave `sslrootcert` out)* |
+| Force the **region** bundle | `ssl_key: !expr system.file("cert", "us-east-1-bundle.pem", package = "bfo.db")` | `sslrootcert = system.file("cert", "us-east-1-bundle.pem", package = "bfo.db")` |
+| Use **your own** certificate | `ssl_key: /path/to/your-cert.pem` | `sslrootcert = "/path/to/your-cert.pem"` |
+
+If you ever need the newest bundle straight from AWS, download it from:
 
 -   Global: <https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem>
 -   Region: <https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem>
@@ -204,7 +378,54 @@ closed automatically when the object is garbage-collected.
 
 ------------------------------------------------------------------------
 
+## ✅ Putting it all together
+
+A complete session, from connecting to closing (using a `config.yml` as in
+Method A):
+
+``` r
+library(bfo.db)
+
+# 1. Connect
+db <- DatabaseConnector$new(config_path = "config.yml")
+
+# 2. Pull a table into R
+countries <- db$collect_view("global_ref")
+
+# 3. ...or query lazily and let the database do the work first
+idn_sites <- db$get_view("global_ref") |>
+  dplyr::filter(country == "IDN") |>
+  dplyr::collect()
+
+# 4. Always close when you're done
+db$close()
+```
+
+> 💡 Don't want the step-by-step messages? Add `quiet = TRUE` when you connect:
+> `DatabaseConnector$new(config_path = "config.yml", quiet = TRUE)`.
+
+------------------------------------------------------------------------
+
 ## ⚠️ Notes: Possible Issues and Solutions
+
+### Connection problems
+
+| Message you see | What it usually means | How to fix it |
+|------------------|------------------------|------------------------|
+| `All connection parameters are required…` | A field (often `password`) is empty or misspelled | Check your `config.yml`/`.Renviron`; remember `.Renviron` needs an **R restart** |
+| `could not connect to server` / timeout | Wrong `host`/`port`, or you're not on the right network/VPN | Confirm the values with the data team and your network access |
+| `password authentication failed` | Wrong `user` or `password` | Re-check those two values |
+| Values from `.Renviron` come back empty | R was not restarted after editing `.Renviron` | **Session → Restart R**, then try again |
+| `Cannot open lock file: Permission denied` during install | R is installing into a folder you don't own | Install into a personal library; see the install notes |
+
+A quick way to check your `.Renviron` values loaded correctly (this prints the
+host, *not* your password):
+
+``` r
+Sys.getenv("BFO_DB_HOST")
+```
+
+### GitHub access (for installing the package)
 
 1.  **GitHub Access**: Make sure you are a **member of the `Barefoot-Ocean` organization** on GitHub. If not, you won't be able to access the private repository.
 

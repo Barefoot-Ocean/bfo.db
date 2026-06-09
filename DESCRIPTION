@@ -37,6 +37,7 @@ Suggests:
     pkgdown,
     devtools,
     roxygen2,
+    usethis,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
 URL: https://github.com/Barefoot-Ocean/bfo.db, https://barefoot-ocean.github.io/bfo.db

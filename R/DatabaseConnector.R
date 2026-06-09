@@ -8,7 +8,7 @@
 #' @import DBI
 #' @import RPostgres
 #' @import dplyr
-#' @import dbplyr
+#' @rawNamespace import(dbplyr, except = c(ident, sql))
 #' @import config
 #' @import stringr
 #' @import tibble
