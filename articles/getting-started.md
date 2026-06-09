@@ -1,114 +1,280 @@
 # Getting started with bfo.db
 
-[bfo.db](https://github.com/Barefoot-Ocean/bfo.db) provides a small
-[R6](https://r6.r-lib.org/) interface, `DatabaseConnector`, for
-connecting to the Barefoot Ocean PostgreSQL database over a secure (TLS)
-connection and pulling database views into R.
+This guide walks you through everything you need to connect to the
+Barefoot Ocean database and pull data into R. **No prior
+package-development experience is assumed** — if you can run code in
+RStudio, you can follow along.
+
+[bfo.db](https://github.com/Barefoot-Ocean/bfo.db) gives you one object,
+`DatabaseConnector`, that:
+
+- opens a secure (encrypted) connection to the database,
+- lets you read database *views* into R, and
+- cleans up the connection when you’re done.
 
 ``` r
 
 library(bfo.db)
 ```
 
-## 1. Open a connection
+## 1. What you’ll need
 
-There are two ways to connect. Either way, the package prints short
-messages explaining what is happening and what to do next; pass
-`quiet = TRUE` to silence them.
+Before connecting, get these five values from the Barefoot Ocean data
+team:
 
-### Option A — a `config.yml` file (recommended)
+| Field      | Meaning                | Example                                  |
+|------------|------------------------|------------------------------------------|
+| `dbname`   | the database name      | `bfo`                                    |
+| `host`     | the server address     | `bfo.abc123.us-east-1.rds.amazonaws.com` |
+| `port`     | the network port       | `5432`                                   |
+| `user`     | your database username | `jane.doe`                               |
+| `password` | your database password | (secret)                                 |
 
-Keep your secrets in a `config.yml` file that is **never committed to
-git**:
+You do **not** need to obtain an SSL certificate — the package already
+ships one and uses it for you (see [Choosing a
+certificate](#choosing-a-certificate)).
+
+> **The one rule that matters:** your `user` and `password` are secrets.
+> Never put them in a file that is shared, emailed, or committed to
+> GitHub. The recommended methods below keep them on your computer only.
+
+## 2. Choosing how to store your credentials
+
+There are three ways to provide credentials. **If you’re unsure, use
+Method A.**
+
+| Method                            | Best for                              |
+|-----------------------------------|---------------------------------------|
+| **A.** a `config.yml` file        | most people; one analyst, one machine |
+| **B.** `config.yml` + `.Renviron` | teams / shared projects / many users  |
+| **C.** typed into the script      | quick one-off tests only              |
+
+### Method A — a `config.yml` file
+
+A `config.yml` is a small settings file you create once.
+
+**Step 1.** Create and open it (in RStudio):
+
+``` r
+
+file.edit("config.yml")
+```
+
+**Step 2.** Paste this in and replace each `XXXXXX` with your real
+values. YAML relies on indentation, so keep the two-space indents and
+don’t use tabs:
 
 ``` yaml
 default:
   bfo_data:
     dbname: XXXXXX
     host: XXXXXX
+    port: XXXXXX
     user: XXXXXX
     password: XXXXXX
-    port: XXXXXX
-  # Optional: omit to use the CA bundle shipped with the package.
-  # ssl_key: path/to/your-cert.pem
+```
+
+Save the file.
+
+**Step 3.** Connect:
+
+``` r
+
+db <- DatabaseConnector$new(config_path = "config.yml")
+```
+
+**Step 4.** Keep it private. If your project uses Git, make sure the
+file is never committed:
+
+``` r
+
+usethis::use_git_ignore("config.yml")
+```
+
+### Method B — `config.yml` + `.Renviron` (for teams and many users)
+
+When several people share one project, you don’t want everyone’s
+password in a shared `config.yml`. Instead:
+
+- keep a **single, shareable `config.yml`** that holds *no* secrets — it
+  only *points to* environment variables; and
+- let each person keep their own secrets in a personal **`.Renviron`**
+  file.
+
+The same project then works for **many users**, and nobody’s password
+leaves their own machine.
+
+**Step 1.** Open your personal `.Renviron`. The `usethis` package makes
+this easy — it finds and opens the file for you, wherever it lives:
+
+``` r
+
+# install.packages("usethis")     # if needed
+usethis::edit_r_environ()              # your personal (user-level) .Renviron
+# usethis::edit_r_environ("project")   # or one scoped to the current project
+```
+
+`.Renviron` is **not** R code — it’s just `NAME=value` lines, with no
+quotes and no spaces around the `=`:
+
+    BFO_DB_NAME=bfo
+    BFO_DB_HOST=bfo.abc123.us-east-1.rds.amazonaws.com
+    BFO_DB_PORT=5432
+    BFO_DB_USER=jane.doe
+    BFO_DB_PASSWORD=your-secret-password
+
+**Step 2.** Save the file and **restart R** (RStudio: *Session → Restart
+R*). `.Renviron` is only read when R starts.
+
+**Step 3.** Write a `config.yml` that *reads* those variables. The
+`!expr` tag runs a small R expression; `Sys.getenv("…")` looks up a
+value from `.Renviron`:
+
+``` yaml
+default:
+  bfo_data:
+    dbname: !expr Sys.getenv("BFO_DB_NAME")
+    host: !expr Sys.getenv("BFO_DB_HOST")
+    port: !expr Sys.getenv("BFO_DB_PORT")
+    user: !expr Sys.getenv("BFO_DB_USER")
+    password: !expr Sys.getenv("BFO_DB_PASSWORD")
+```
+
+This file has no real secrets in it, so it is safe to commit and share.
+
+**Step 4.** Connect, exactly as in Method A:
+
+``` r
+
+db <- DatabaseConnector$new(config_path = "config.yml")
+```
+
+#### Several profiles in one file
+
+`config.yml` can hold more than one named profile (say a read-only and
+an admin login). Add extra top-level blocks and pick one with
+`R_CONFIG_ACTIVE`:
+
+``` yaml
+default:
+  bfo_data:
+    dbname:   !expr Sys.getenv("BFO_DB_NAME")
+    host:     !expr Sys.getenv("BFO_DB_HOST")
+    port:     !expr Sys.getenv("BFO_DB_PORT")
+    user:     !expr Sys.getenv("BFO_READONLY_USER")
+    password: !expr Sys.getenv("BFO_READONLY_PASSWORD")
+
+admin:
+  bfo_data:
+    dbname:   !expr Sys.getenv("BFO_DB_NAME")
+    host:     !expr Sys.getenv("BFO_DB_HOST")
+    port:     !expr Sys.getenv("BFO_DB_PORT")
+    user:     !expr Sys.getenv("BFO_ADMIN_USER")
+    password: !expr Sys.getenv("BFO_ADMIN_PASSWORD")
 ```
 
 ``` r
 
-db <- DatabaseConnector$new(config_path = "path/to/config.yml")
+Sys.setenv(R_CONFIG_ACTIVE = "admin")   # "default" is used when this is unset
+db <- DatabaseConnector$new(config_path = "config.yml")
 ```
 
-### Option B — direct parameters
+### Method C — type credentials directly (quick tests only)
+
+Fastest to try, but the password ends up in your script — so only for
+throwaway tests, and never save or share such a script.
 
 ``` r
 
 db <- DatabaseConnector$new(
-  dbname   = "XXXXXX",
-  host     = "XXXXXX",
-  user     = "XXXXXX",
-  password = "XXXXXX",
+  dbname   = "bfo",
+  host     = "bfo.abc123.us-east-1.rds.amazonaws.com",
   port     = 5432,
+  user     = "jane.doe",
+  password = "your-secret-password",
   sslmode  = "require"
-  # sslrootcert is optional — defaults to the bundled AWS RDS CA bundle.
 )
 ```
 
-## 2. Credentials vs. the SSL certificate
-
-Your database **host, user, and password are secrets** — keep them in
-`config.yml` or `.Renviron` and out of version control.
-
-The **SSL certificate** (`sslrootcert` / `ssl_key`) is *not* a secret:
-it is AWS’s public Certificate Authority bundle, used only to verify the
-server’s identity. For convenience this package ships the bundles
-itself, so by default you don’t need to download or manage any `.pem`
-file. The connection uses the **global** bundle (which covers every AWS
-region), falling back to the `us-east-1` bundle:
+A safer variant reads the secrets from `.Renviron` so nothing is written
+down:
 
 ``` r
 
-system.file("cert", "global-bundle.pem", package = "bfo.db")   # preferred
-system.file("cert", "us-east-1-bundle.pem", package = "bfo.db") # fallback
+db <- DatabaseConnector$new(
+  dbname   = Sys.getenv("BFO_DB_NAME"),
+  host     = Sys.getenv("BFO_DB_HOST"),
+  port     = Sys.getenv("BFO_DB_PORT"),
+  user     = Sys.getenv("BFO_DB_USER"),
+  password = Sys.getenv("BFO_DB_PASSWORD")
+)
 ```
 
-Only set `sslrootcert`/`ssl_key` yourself to pin a specific certificate.
+## 3. Choosing a certificate
 
-## 3. Fetch data
+The connection is encrypted, which needs AWS’s public Certificate
+Authority bundle to verify the server. This is **not** a secret, and
+**you usually do nothing** — the package ships the bundle and uses it
+automatically (the global bundle, which covers all regions, falling back
+to `us-east-1`).
 
-You can work with a view lazily (recommended) or pull it straight into
-memory.
-
-### Lazily, then collect
-
-`get_view()` returns a lazy reference — no data is fetched until you
-`collect()`, so you can push filters and joins down to the database:
+Only override it for special cases:
 
 ``` r
 
-global_ref <- db$get_view("global_ref")
+# Force the region-specific bundle that ships with the package:
+db <- DatabaseConnector$new(
+  config_path = "config.yml"
+)
+# ...or, with direct parameters:
+db <- DatabaseConnector$new(
+  dbname = "bfo", host = "…", port = 5432, user = "…", password = "…",
+  sslrootcert = system.file("cert", "us-east-1-bundle.pem", package = "bfo.db")
+)
 
-global_ref |>
+# Use your own certificate file:
+db <- DatabaseConnector$new(
+  dbname = "bfo", host = "…", port = 5432, user = "…", password = "…",
+  sslrootcert = "/path/to/your-cert.pem"
+)
+```
+
+In a `config.yml`, the equivalent setting is `ssl_key:` inside the
+`default:` block (omit it to use the default).
+
+## 4. Reading data
+
+Once connected, you can work with a view in two ways.
+
+**Lazily** (recommended): `get_view()` returns a reference — no data is
+fetched until you `collect()`, so filters and joins run on the database,
+not in R:
+
+``` r
+
+db$get_view("global_ref") |>
   dplyr::filter(country == "IDN") |>
   dplyr::collect()
 ```
 
-### All at once
+**All at once**: `collect_view()` pulls the whole view into memory
+immediately:
 
 ``` r
 
 global_ref_data <- db$collect_view("global_ref")
 ```
 
-### Look up a user
+Look up a single user:
 
 ``` r
 
-db$get_user_information(user_email = "anastasiia@barefootocean.org")
+db$get_user_information(user_email = "jane.doe@barefootocean.org")
 ```
 
-## 4. Close the connection
+## 5. Closing the connection
 
-When you’re done, return the pooled connections and close the pool:
+When you’re finished, close the pool:
 
 ``` r
 
@@ -116,5 +282,31 @@ db$close()        # db$disconnect() is an alias
 ```
 
 [`close()`](https://rdrr.io/r/base/connections.html) is safe to call
-more than once, and the pool is also closed automatically if the object
-is garbage-collected — but closing it explicitly is good practice.
+more than once, and the connection is also closed automatically if you
+forget — but closing explicitly is good practice.
+
+## 6. Turning off the messages
+
+By default the package prints a short explanation at each step. To
+silence them, pass `quiet = TRUE` when connecting:
+
+``` r
+
+db <- DatabaseConnector$new(config_path = "config.yml", quiet = TRUE)
+```
+
+## 7. Troubleshooting
+
+| Message | Usually means | Fix |
+|----|----|----|
+| `All connection parameters are required…` | a field is empty or misspelled | check `config.yml`/`.Renviron`; restart R if you edited `.Renviron` |
+| `could not connect to server` / timeout | wrong `host`/`port`, or no VPN/network | confirm values and network access |
+| `password authentication failed` | wrong `user` or `password` | re-check those two |
+| `.Renviron` values come back empty | R wasn’t restarted after editing it | *Session → Restart R* |
+
+To confirm your `.Renviron` loaded (prints the host, not the password):
+
+``` r
+
+Sys.getenv("BFO_DB_HOST")
+```

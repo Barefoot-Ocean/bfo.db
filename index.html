@@ -102,54 +102,250 @@ Check version via terminal:
 <hr>
 </div>
 <div class="section level2">
-<h2 id="closed_lock_with_key-step-5-set-up-database-credentials">🔐 Step 5: Set Up Database Credentials<a class="anchor" aria-label="anchor" href="#closed_lock_with_key-step-5-set-up-database-credentials"></a>
+<h2 id="closed_lock_with_key-step-5-set-up-your-database-credentials">🔐 Step 5: Set Up Your Database Credentials<a class="anchor" aria-label="anchor" href="#closed_lock_with_key-step-5-set-up-your-database-credentials"></a>
 </h2>
-<p>You can connect to the database in one of two ways.</p>
+<p>To connect, the package needs five pieces of information about the database:</p>
+<table class="table">
+<colgroup>
+<col width="15%">
+<col width="30%">
+<col width="53%">
+</colgroup>
+<thead><tr>
+<th>Field</th>
+<th>What it is</th>
+<th>Example</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>dbname</code></td>
+<td>The database name</td>
+<td><code>bfo</code></td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td>The server address</td>
+<td><code>bfo.abc123.us-east-1.rds.amazonaws.com</code></td>
+</tr>
+<tr>
+<td><code>port</code></td>
+<td>The network port</td>
+<td><code>5432</code></td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td>Your database username</td>
+<td><code>jane.doe</code></td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>Your database password</td>
+<td><code>••••••••</code></td>
+</tr>
+</tbody>
+</table>
 <blockquote>
-<p>🛡️ <strong>Security:</strong> Your database <strong>host, user, and password are secrets.</strong> Keep them in a <code>config.yml</code> or <code>.Renviron</code> file that is <strong>never committed to git</strong> (add it to <code>.gitignore</code>). The SSL certificate is <em>not</em> a secret — see <a href="#id_-ssl-certificate-sslrootcert">SSL certificate</a> below.</p>
+<p><em>(Ask the Barefoot Ocean data team for these values if you don’t have them.)</em></p>
+</blockquote>
+<p>It also needs an SSL <strong>certificate</strong> — but you don’t have to worry about that: the package ships one and uses it automatically (see <em>5d. Choosing the SSL certificate</em>, below).</p>
+<blockquote>
+<p>🛡️ <strong>The one rule that matters:</strong> your <code>user</code> and <code>password</code> are <strong>secrets</strong>. Never paste them into a file that is shared, emailed, or committed to GitHub. Every <em>recommended</em> method below keeps your secrets in a file that stays <strong>only on your computer</strong>.</p>
 </blockquote>
 <div class="section level3">
-<h3 id="option-1-use-a-configyml-file">Option 1: Use a <code>config.yml</code> File<a class="anchor" aria-label="anchor" href="#option-1-use-a-configyml-file"></a>
+<h3 id="which-method-should-i-use">Which method should I use?<a class="anchor" aria-label="anchor" href="#which-method-should-i-use"></a>
 </h3>
+<p>There are three ways to provide your credentials. <strong>If you’re not sure, use Method A.</strong></p>
+<table class="table">
+<colgroup>
+<col width="28%">
+<col width="38%">
+<col width="32%">
+</colgroup>
+<thead><tr>
+<th>Method</th>
+<th>Best for</th>
+<th>Your secrets live in</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><strong>A. A <code>config.yml</code> file</strong></td>
+<td>Most people; a single analyst on one computer</td>
+<td>a local <code>config.yml</code> (kept off GitHub)</td>
+</tr>
+<tr>
+<td><strong>B. <code>config.yml</code> + <code>.Renviron</code></strong></td>
+<td>Teams and shared projects with <strong>many users</strong>
+</td>
+<td>each person’s own <code>.Renviron</code>
+</td>
+</tr>
+<tr>
+<td><strong>C. Typed into the script</strong></td>
+<td>Quick one-off tests only</td>
+<td>the script itself ⚠️</td>
+</tr>
+</tbody>
+</table>
+<hr>
+</div>
+<div class="section level3">
+<h3 id="method-a--use-a-configyml-file-recommended-for-most-people">Method A — Use a <code>config.yml</code> file <em>(recommended for most people)</em>
+<a class="anchor" aria-label="anchor" href="#method-a--use-a-configyml-file-recommended-for-most-people"></a>
+</h3>
+<p>A <code>config.yml</code> is a small text file that holds your connection settings. You create it once and reuse it.</p>
+<p><strong>1. Create the file.</strong> In RStudio, run this to create and open it in the project you’re working in:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"path/to/config.yml"</span><span class="op">)</span></span></code></pre></div>
-<p><strong>Example <code>config.yml</code> structure:</strong></p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/file.edit.html" class="external-link">file.edit</a></span><span class="op">(</span><span class="st">"config.yml"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>2. Paste in this template</strong> and replace each <code>XXXXXX</code> with your real values (keep the indentation — YAML cares about spaces, and use 2 spaces, not tabs):</p>
 <div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">default</span><span class="kw">:</span></span>
 <span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="at">  </span><span class="fu">bfo_data</span><span class="kw">:</span></span>
 <span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="at">    </span><span class="fu">dbname</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
 <span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="at">    </span><span class="fu">host</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">  # Optional. Omit to use the AWS RDS us-east-1 CA bundle shipped with the package.</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">  # ssl_key: path/to/your-cert.pem</span></span></code></pre></div>
+<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
+<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
+<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> XXXXXX</span></span>
+<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="co">  # Optional — omit this line to use the certificate bundled with the package.</span></span>
+<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="co">  # ssl_key: path/to/your-own-cert.pem</span></span></code></pre></div>
+<p>Save the file (Ctrl/Cmd + S).</p>
+<p><strong>3. Connect</strong>, pointing at the file you just created:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"config.yml"</span><span class="op">)</span></span></code></pre></div>
+<p><strong>4. Keep it private.</strong> If your project is a Git repository, make sure <code>config.yml</code> is never committed:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">usethis</span><span class="fu">::</span><span class="fu"><a href="https://usethis.r-lib.org/reference/use_git_ignore.html" class="external-link">use_git_ignore</a></span><span class="op">(</span><span class="st">"config.yml"</span><span class="op">)</span>   <span class="co"># adds it to .gitignore for you</span></span></code></pre></div>
+<p>If you’re not using <code>usethis</code>, just add a line containing <code>config.yml</code> to your <code>.gitignore</code> file by hand.</p>
 <hr>
 </div>
 <div class="section level3">
-<h3 id="option-2-provide-credentials-directly-in-the-script">Option 2: Provide Credentials Directly in the Script<a class="anchor" aria-label="anchor" href="#option-2-provide-credentials-directly-in-the-script"></a>
+<h3 id="method-b--configyml--renviron-recommended-for-teams--many-users">Method B — <code>config.yml</code> + <code>.Renviron</code> <em>(recommended for teams / many users)</em>
+<a class="anchor" aria-label="anchor" href="#method-b--configyml--renviron-recommended-for-teams--many-users"></a>
 </h3>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<p>When several people share the same project (e.g. on GitHub), you don’t want everyone’s passwords sitting in a shared <code>config.yml</code>. The clean pattern is:</p>
+<ul>
+<li>a <strong>single, shareable <code>config.yml</code></strong> that contains <em>no secrets</em> — it only <em>refers to</em> environment variables; and</li>
+<li>a personal <strong><code>.Renviron</code></strong> file on each person’s computer that holds <em>their own</em> secret values.</li>
+</ul>
+<p>This way the same project works for <strong>many users</strong>, and each person’s password never leaves their own machine.</p>
+<p><strong>1. Open your personal <code>.Renviron</code>.</strong> The easiest way is with <code>usethis</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># install.packages("usethis")   # if you don't have it yet</span></span>
+<span><span class="fu">usethis</span><span class="fu">::</span><span class="fu"><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">edit_r_environ</a></span><span class="op">(</span><span class="op">)</span>            <span class="co"># opens your personal (user-level) .Renviron</span></span>
+<span><span class="co"># usethis::edit_r_environ("project") # or one just for the current project</span></span></code></pre></div>
+<p>This opens (creating it if needed) a file where you store secrets as <code>NAME=value</code>, one per line. <code>.Renviron</code> is <strong>not</strong> R code — no quotes, no spaces around <code>=</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a>BFO_DB_NAME<span class="ot">=</span>bfo</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a>BFO_DB_HOST<span class="ot">=</span>bfo.abc123.us<span class="sc">-</span>east<span class="fl">-1.</span>rds.amazonaws.com</span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a>BFO_DB_PORT<span class="ot">=</span><span class="dv">5432</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a>BFO_DB_USER<span class="ot">=</span>jane.doe</span>
+<span id="cb12-5"><a href="#cb12-5" tabindex="-1"></a>BFO_DB_PASSWORD<span class="ot">=</span>your<span class="sc">-</span>secret<span class="sc">-</span>password</span></code></pre></div>
+<blockquote>
+<p>💡 <em>Where does this file live?</em> Your user-level <code>.Renviron</code> is in your home folder (<code>~/.Renviron</code>). You normally never need to find it by hand — <code><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">usethis::edit_r_environ()</a></code> opens it for you.</p>
+</blockquote>
+<p><strong>2. Save the file and restart R.</strong> <code>.Renviron</code> is only read when R starts, so restart your session (in RStudio: <strong>Session → Restart R</strong>) for the new values to take effect.</p>
+<p><strong>3. Write a <code>config.yml</code> that reads those variables</strong> instead of holding the secrets directly. The <code>!expr</code> tag tells R to run a small expression — <code>Sys.getenv("…")</code> simply looks up a value from <code>.Renviron</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">default</span><span class="kw">:</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="at">  </span><span class="fu">bfo_data</span><span class="kw">:</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="at">    </span><span class="fu">dbname</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_NAME")</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="at">    </span><span class="fu">host</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_HOST")</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_PORT")</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_USER")</span></span>
+<span id="cb13-7"><a href="#cb13-7" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_PASSWORD")</span></span></code></pre></div>
+<p>Because this file contains no real secrets, it is <strong>safe to commit and share</strong>.</p>
+<p><strong>4. Connect exactly as in Method A:</strong></p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"config.yml"</span><span class="op">)</span></span></code></pre></div>
+<details><summary><b>Advanced: several connection profiles in one file</b>
+</summary><p><code>config.yml</code> can hold more than one named profile (for example a read-only and an admin login, or a staging server). Add extra top-level blocks and switch between them with the <code>R_CONFIG_ACTIVE</code> environment variable:</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="fu">default</span><span class="kw">:</span></span>
+<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="at">  </span><span class="fu">bfo_data</span><span class="kw">:</span></span>
+<span id="cb15-3"><a href="#cb15-3" tabindex="-1"></a><span class="at">    </span><span class="fu">dbname</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_NAME")</span></span>
+<span id="cb15-4"><a href="#cb15-4" tabindex="-1"></a><span class="at">    </span><span class="fu">host</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_HOST")</span></span>
+<span id="cb15-5"><a href="#cb15-5" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_PORT")</span></span>
+<span id="cb15-6"><a href="#cb15-6" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_READONLY_USER")</span></span>
+<span id="cb15-7"><a href="#cb15-7" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_READONLY_PASSWORD")</span></span>
+<span id="cb15-8"><a href="#cb15-8" tabindex="-1"></a></span>
+<span id="cb15-9"><a href="#cb15-9" tabindex="-1"></a><span class="fu">admin</span><span class="kw">:</span></span>
+<span id="cb15-10"><a href="#cb15-10" tabindex="-1"></a><span class="at">  </span><span class="fu">bfo_data</span><span class="kw">:</span></span>
+<span id="cb15-11"><a href="#cb15-11" tabindex="-1"></a><span class="at">    </span><span class="fu">dbname</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_NAME")</span></span>
+<span id="cb15-12"><a href="#cb15-12" tabindex="-1"></a><span class="at">    </span><span class="fu">host</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_HOST")</span></span>
+<span id="cb15-13"><a href="#cb15-13" tabindex="-1"></a><span class="at">    </span><span class="fu">port</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_DB_PORT")</span></span>
+<span id="cb15-14"><a href="#cb15-14" tabindex="-1"></a><span class="at">    </span><span class="fu">user</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_ADMIN_USER")</span></span>
+<span id="cb15-15"><a href="#cb15-15" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> !expr Sys.getenv("BFO_ADMIN_PASSWORD")</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.setenv.html" class="external-link">Sys.setenv</a></span><span class="op">(</span>R_CONFIG_ACTIVE <span class="op">=</span> <span class="st">"admin"</span><span class="op">)</span>   <span class="co"># use the "admin" block; default is "default"</span></span>
+<span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"config.yml"</span><span class="op">)</span></span></code></pre></div>
+</details><hr>
+</div>
+<div class="section level3">
+<h3 id="method-c--type-credentials-directly-in-your-script-quick-tests-only">Method C — Type credentials directly in your script <em>(quick tests only)</em>
+<a class="anchor" aria-label="anchor" href="#method-c--type-credentials-directly-in-your-script-quick-tests-only"></a>
+</h3>
+<p>You can pass everything straight to the connector. This is the fastest way to try a connection, but the password ends up <strong>in your script</strong>, so only use it for throwaway tests — and never save or share a script that contains a real password.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span></span>
-<span>  dbname <span class="op">=</span> <span class="st">"XXXXXXX"</span>,</span>
-<span>  host <span class="op">=</span> <span class="st">"XXXXXXX"</span>,</span>
-<span>  user <span class="op">=</span> <span class="st">"XXXXXXX"</span>,</span>
-<span>  password <span class="op">=</span> <span class="st">"XXXXXXX"</span>,</span>
-<span>  port <span class="op">=</span> <span class="va">XXXXX</span>,</span>
-<span>  sslmode <span class="op">=</span> <span class="st">"require"</span></span>
-<span>  <span class="co"># sslrootcert is optional — defaults to the bundled AWS RDS us-east-1 CA bundle.</span></span>
+<span>  dbname   <span class="op">=</span> <span class="st">"bfo"</span>,</span>
+<span>  host     <span class="op">=</span> <span class="st">"bfo.abc123.us-east-1.rds.amazonaws.com"</span>,</span>
+<span>  port     <span class="op">=</span> <span class="fl">5432</span>,</span>
+<span>  user     <span class="op">=</span> <span class="st">"jane.doe"</span>,</span>
+<span>  password <span class="op">=</span> <span class="st">"your-secret-password"</span>,</span>
+<span>  sslmode  <span class="op">=</span> <span class="st">"require"</span></span>
+<span>  <span class="co"># sslrootcert is optional — see 5d below.</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>A safer middle ground is to keep the secrets in <code>.Renviron</code> (as in Method B) and read them in your script, so no password is ever written down:</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span></span>
+<span>  dbname   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_NAME"</span><span class="op">)</span>,</span>
+<span>  host     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_HOST"</span><span class="op">)</span>,</span>
+<span>  port     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_PORT"</span><span class="op">)</span>,</span>
+<span>  user     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_USER"</span><span class="op">)</span>,</span>
+<span>  password <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_PASSWORD"</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <hr>
 </div>
 <div class="section level3">
-<h3 id="lock_with_ink_pen-ssl-certificate-sslrootcert">🔏 SSL certificate (<code>sslrootcert</code>)<a class="anchor" aria-label="anchor" href="#lock_with_ink_pen-ssl-certificate-sslrootcert"></a>
+<h3 id="id_5d-lock_with_ink_pen-choosing-the-ssl-certificate-the-pem-file">5d. 🔏 Choosing the SSL certificate (the <code>.pem</code> file)<a class="anchor" aria-label="anchor" href="#id_5d-lock_with_ink_pen-choosing-the-ssl-certificate-the-pem-file"></a>
 </h3>
-<p>The connection uses TLS (<code>sslmode = "require"</code>), which needs the AWS RDS <strong>Certificate Authority bundle</strong> to verify the server’s identity. This bundle is <strong>public</strong> (published by AWS) — it is <strong>not</strong> a credential and contains no secrets.</p>
-<p>For convenience, the AWS CA bundles ship <strong>inside this package</strong>, so by default you don’t need to download or manage any <code>.pem</code> file. When you omit <code>sslrootcert</code> (or <code>ssl_key</code> in <code>config.yml</code>), the package automatically uses the <strong>global</strong> bundle (which covers every AWS region), falling back to the <code>us-east-1</code> bundle:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># default resolution</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"cert"</span>, <span class="st">"global-bundle.pem"</span>, package <span class="op">=</span> <span class="st">"bfo.db"</span><span class="op">)</span>   <span class="co"># preferred</span></span>
+<p>The connection is encrypted (<code>sslmode = "require"</code>), which needs the AWS RDS <strong>Certificate Authority (CA) bundle</strong> to verify the server’s identity. Good news:</p>
+<ul>
+<li>
+<strong>This is <em>not</em> a secret.</strong> It’s a public certificate published by AWS, so it’s completely safe to share or commit.</li>
+<li>
+<strong>You don’t have to manage it.</strong> The package ships the AWS CA bundles inside itself, and uses them automatically.</li>
+</ul>
+<p><strong>Most users should do nothing here</strong> — just omit <code>sslrootcert</code> (and <code>ssl_key</code>), and the package uses the <strong>global</strong> bundle (which works for every AWS region), falling back to the <code>us-east-1</code> bundle. The defaults resolve to:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"cert"</span>, <span class="st">"global-bundle.pem"</span>, package <span class="op">=</span> <span class="st">"bfo.db"</span><span class="op">)</span>   <span class="co"># used by default</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"cert"</span>, <span class="st">"us-east-1-bundle.pem"</span>, package <span class="op">=</span> <span class="st">"bfo.db"</span><span class="op">)</span> <span class="co"># fallback</span></span></code></pre></div>
-<p>You only need to set <code>sslrootcert</code> (or <code>ssl_key</code>) yourself if you want to pin a specific certificate or supply your own. The latest bundles are always available from AWS:</p>
+<p>You only need to choose a certificate yourself in special cases:</p>
+<table class="table">
+<colgroup>
+<col width="15%">
+<col width="42%">
+<col width="41%">
+</colgroup>
+<thead><tr>
+<th>You want to…</th>
+<th>In <code>config.yml</code> set…</th>
+<th>In a direct call set…</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Use the default (recommended)</td>
+<td><em>(leave <code>ssl_key</code> out)</em></td>
+<td><em>(leave <code>sslrootcert</code> out)</em></td>
+</tr>
+<tr>
+<td>Force the <strong>region</strong> bundle</td>
+<td><code>ssl_key: !expr system.file("cert", "us-east-1-bundle.pem", package = "bfo.db")</code></td>
+<td><code>sslrootcert = system.file("cert", "us-east-1-bundle.pem", package = "bfo.db")</code></td>
+</tr>
+<tr>
+<td>Use <strong>your own</strong> certificate</td>
+<td><code>ssl_key: /path/to/your-cert.pem</code></td>
+<td><code>sslrootcert = "/path/to/your-cert.pem"</code></td>
+</tr>
+</tbody>
+</table>
+<p>If you ever need the newest bundle straight from AWS, download it from:</p>
 <ul>
 <li>Global: <a href="https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem" class="external-link uri">https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem</a>
 </li>
@@ -166,13 +362,13 @@ Check version via terminal:
 <div class="section level3">
 <h3 id="option-a-load-all-data-immediately">Option A: Load All Data Immediately<a class="anchor" aria-label="anchor" href="#option-a-load-all-data-immediately"></a>
 </h3>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">global_ref_data</span> <span class="op">&lt;-</span> <span class="va">db</span><span class="op">$</span><span class="fu">collect_view</span><span class="op">(</span><span class="st">"global_ref"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="option-b-work-with-the-database-object-first-more-memory-efficient">Option B: Work with the Database Object First (More Memory-Efficient)<a class="anchor" aria-label="anchor" href="#option-b-work-with-the-database-object-first-more-memory-efficient"></a>
 </h3>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">global_ref_data</span> <span class="op">&lt;-</span> <span class="va">db</span><span class="op">$</span><span class="fu">get_view</span><span class="op">(</span><span class="st">"global_ref"</span><span class="op">)</span></span>
 <span><span class="co"># You can apply filters, joins, etc. before collecting:</span></span>
 <span><span class="va">global_ref_data</span> <span class="op">&lt;-</span> <span class="va">global_ref_data</span> <span class="op">|&gt;</span></span>
@@ -185,18 +381,99 @@ Check version via terminal:
 <h2 id="lock-step-7-close-the-database-connection">🔒 Step 7: Close the Database Connection<a class="anchor" aria-label="anchor" href="#lock-step-7-close-the-database-connection"></a>
 </h2>
 <p>Once you’re done, return the pooled connections and close the pool:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">db</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span>        <span class="co"># (db$disconnect() is an alias)</span></span></code></pre></div>
 <p><code><a href="https://rdrr.io/r/base/connections.html" class="external-link">close()</a></code> is safe to call more than once, and if you forget, the pool is also closed automatically when the object is garbage-collected.</p>
 <hr>
 </div>
 <div class="section level2">
+<h2 id="white_check_mark-putting-it-all-together">✅ Putting it all together<a class="anchor" aria-label="anchor" href="#white_check_mark-putting-it-all-together"></a>
+</h2>
+<p>A complete session, from connecting to closing (using a <code>config.yml</code> as in Method A):</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Barefoot-Ocean/bfo.db" class="external-link">bfo.db</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 1. Connect</span></span>
+<span><span class="va">db</span> <span class="op">&lt;-</span> <span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"config.yml"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 2. Pull a table into R</span></span>
+<span><span class="va">countries</span> <span class="op">&lt;-</span> <span class="va">db</span><span class="op">$</span><span class="fu">collect_view</span><span class="op">(</span><span class="st">"global_ref"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 3. ...or query lazily and let the database do the work first</span></span>
+<span><span class="va">idn_sites</span> <span class="op">&lt;-</span> <span class="va">db</span><span class="op">$</span><span class="fu">get_view</span><span class="op">(</span><span class="st">"global_ref"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">country</span> <span class="op">==</span> <span class="st">"IDN"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/compute.html" class="external-link">collect</a></span><span class="op">(</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># 4. Always close when you're done</span></span>
+<span><span class="va">db</span><span class="op">$</span><span class="fu">close</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<blockquote>
+<p>💡 Don’t want the step-by-step messages? Add <code>quiet = TRUE</code> when you connect: <code>DatabaseConnector$new(config_path = "config.yml", quiet = TRUE)</code>.</p>
+</blockquote>
+<hr>
+</div>
+<div class="section level2">
 <h2 id="warning-notes-possible-issues-and-solutions">⚠️ Notes: Possible Issues and Solutions<a class="anchor" aria-label="anchor" href="#warning-notes-possible-issues-and-solutions"></a>
 </h2>
+<div class="section level3">
+<h3 id="connection-problems">Connection problems<a class="anchor" aria-label="anchor" href="#connection-problems"></a>
+</h3>
+<table class="table">
+<colgroup>
+<col width="29%">
+<col width="30%">
+<col width="40%">
+</colgroup>
+<thead><tr>
+<th>Message you see</th>
+<th>What it usually means</th>
+<th>How to fix it</th>
+</tr></thead>
+<tbody>
+<tr>
+<td><code>All connection parameters are required…</code></td>
+<td>A field (often <code>password</code>) is empty or misspelled</td>
+<td>Check your <code>config.yml</code>/<code>.Renviron</code>; remember <code>.Renviron</code> needs an <strong>R restart</strong>
+</td>
+</tr>
+<tr>
+<td>
+<code>could not connect to server</code> / timeout</td>
+<td>Wrong <code>host</code>/<code>port</code>, or you’re not on the right network/VPN</td>
+<td>Confirm the values with the data team and your network access</td>
+</tr>
+<tr>
+<td><code>password authentication failed</code></td>
+<td>Wrong <code>user</code> or <code>password</code>
+</td>
+<td>Re-check those two values</td>
+</tr>
+<tr>
+<td>Values from <code>.Renviron</code> come back empty</td>
+<td>R was not restarted after editing <code>.Renviron</code>
+</td>
+<td>
+<strong>Session → Restart R</strong>, then try again</td>
+</tr>
+<tr>
+<td>
+<code>Cannot open lock file: Permission denied</code> during install</td>
+<td>R is installing into a folder you don’t own</td>
+<td>Install into a personal library; see the install notes</td>
+</tr>
+</tbody>
+</table>
+<p>A quick way to check your <code>.Renviron</code> values loaded correctly (this prints the host, <em>not</em> your password):</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Sys.getenv.html" class="external-link">Sys.getenv</a></span><span class="op">(</span><span class="st">"BFO_DB_HOST"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="github-access-for-installing-the-package">GitHub access (for installing the package)<a class="anchor" aria-label="anchor" href="#github-access-for-installing-the-package"></a>
+</h3>
 <ol style="list-style-type: decimal">
 <li><p><strong>GitHub Access</strong>: Make sure you are a <strong>member of the <code>Barefoot-Ocean</code> organization</strong> on GitHub. If not, you won’t be able to access the private repository.</p></li>
 <li><p><strong>Authentication Token (Optional but Recommended)</strong>: Adding a GitHub token to your <code>.Renviron</code> file helps avoid GitHub rate limits during package installation.</p></li>
 </ol>
+</div>
 <div class="section level3">
 <h3 id="add-a-github-token-to-renviron">Add a GitHub Token to <code>.Renviron</code>
 <a class="anchor" aria-label="anchor" href="#add-a-github-token-to-renviron"></a>
@@ -210,7 +487,7 @@ Check version via terminal:
 <li><p>Run <code><a href="https://usethis.r-lib.org/reference/edit.html" class="external-link">usethis::edit_r_environ()</a></code> to open your <code>.Renviron</code> file.</p></li>
 <li>
 <p>Add the following line (replace <code>your_token</code>):</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a>GITHUB_PAT<span class="ot">=</span>your_token</span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" tabindex="-1"></a>GITHUB_PAT<span class="ot">=</span>your_token</span></code></pre></div>
 </li>
 <li><p>Save and close the file.</p></li>
 <li><p>Restart RStudio.</p></li>
@@ -223,12 +500,12 @@ Check version via terminal:
 <li><p>Open Terminal.</p></li>
 <li>
 <p>Edit the <code>.Renviron</code> file in your home directory (or use RStudio as above):</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" tabindex="-1"></a><span class="ex">open</span> <span class="at">-a</span> TextEdit ~/.Renviron  <span class="co"># for macOS</span></span>
-<span id="cb15-2"><a href="#cb15-2" tabindex="-1"></a><span class="fu">nano</span> ~/.Renviron              <span class="co"># for CLI edit</span></span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="ex">open</span> <span class="at">-a</span> TextEdit ~/.Renviron  <span class="co"># for macOS</span></span>
+<span id="cb26-2"><a href="#cb26-2" tabindex="-1"></a><span class="fu">nano</span> ~/.Renviron              <span class="co"># for CLI edit</span></span></code></pre></div>
 </li>
 <li>
 <p>Add the line:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a>GITHUB_PAT<span class="ot">=</span>your_token</span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode R"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" tabindex="-1"></a>GITHUB_PAT<span class="ot">=</span>your_token</span></code></pre></div>
 </li>
 <li><p>Save the file and restart RStudio.</p></li>
 </ol>
@@ -253,7 +530,7 @@ Check version via terminal:
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
 <p>You can install the development version of <code>bfo.db</code> from GitHub:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/install-deprecated.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"Barefoot-Ocean/bfo.db"</span><span class="op">)</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"Barefoot-Ocean/bfo.db"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -261,7 +538,7 @@ Check version via terminal:
 <h3 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a>
 </h3>
 <p>This is a basic example:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Load the package</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Barefoot-Ocean/bfo.db" class="external-link">bfo.db</a></span><span class="op">)</span></span>
 <span></span>
@@ -286,7 +563,7 @@ Check version via terminal:
 <div class="section level4">
 <h4 id="get-user-information-by-email">Get user information by email<a class="anchor" aria-label="anchor" href="#get-user-information-by-email"></a>
 </h4>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/Barefoot-Ocean/bfo.db" class="external-link">bfo.db</a></span><span class="op">)</span></span>
 <span><span class="va">db</span> <span class="op">&lt;-</span> <span class="fu">bfo.db</span><span class="fu">::</span><span class="va"><a href="reference/DatabaseConnector.html">DatabaseConnector</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span>config_path <span class="op">=</span> <span class="st">"path/to/config.yml"</span><span class="op">)</span></span>
 <span></span>
@@ -334,32 +611,32 @@ Check version via terminal:
 <li><p>Bump <code>Version:</code> in <code>DESCRIPTION</code> and add an entry to <code>NEWS.md</code>.</p></li>
 <li>
 <p>Regenerate docs and the README:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">roxygen2</span><span class="fu">::</span><span class="fu"><a href="https://roxygen2.r-lib.org/reference/roxygenize.html" class="external-link">roxygenise</a></span><span class="op">(</span><span class="op">)</span>        <span class="co"># updates NAMESPACE + man/</span></span>
 <span><span class="fu">rmarkdown</span><span class="fu">::</span><span class="fu"><a href="https://pkgs.rstudio.com/rmarkdown/reference/render.html" class="external-link">render</a></span><span class="op">(</span><span class="st">"README.Rmd"</span><span class="op">)</span>  <span class="co"># regenerates README.md</span></span></code></pre></div>
 </li>
 <li>
 <p>Refresh the lockfile against your current R/library:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">renv</span><span class="fu">::</span><span class="fu">snapshot</span><span class="op">(</span>type <span class="op">=</span> <span class="st">"implicit"</span>, prompt <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
 <p>Sanity-check the build (the CA bundles must appear under <code>inst/cert/</code>):</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/build.html" class="external-link">build</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </li>
 <li>
 <p>Commit, tag, and push the release (tag must match the version so <code>pak::pak("Barefoot-Ocean/bfo.db@vX.Y.Z")</code> resolves):</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" tabindex="-1"></a><span class="fu">git</span> tag v0.3.0</span>
-<span id="cb23-2"><a href="#cb23-2" tabindex="-1"></a><span class="fu">git</span> push origin main <span class="at">--tags</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">git</span> tag v0.3.0</span>
+<span id="cb34-2"><a href="#cb34-2" tabindex="-1"></a><span class="fu">git</span> push origin main <span class="at">--tags</span></span></code></pre></div>
 </li>
 <li><p>Optionally create a GitHub release from the tag.</p></li>
 </ol>
 <p>To refresh the bundled certificates from AWS:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="at">-o</span> inst/cert/global-bundle.pem <span class="dt">\</span></span>
-<span id="cb24-2"><a href="#cb24-2" tabindex="-1"></a>  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem</span>
-<span id="cb24-3"><a href="#cb24-3" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="at">-o</span> inst/cert/us-east-1-bundle.pem <span class="dt">\</span></span>
-<span id="cb24-4"><a href="#cb24-4" tabindex="-1"></a>  https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem</span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="at">-o</span> inst/cert/global-bundle.pem <span class="dt">\</span></span>
+<span id="cb35-2"><a href="#cb35-2" tabindex="-1"></a>  https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem</span>
+<span id="cb35-3"><a href="#cb35-3" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> <span class="at">-o</span> inst/cert/us-east-1-bundle.pem <span class="dt">\</span></span>
+<span id="cb35-4"><a href="#cb35-4" tabindex="-1"></a>  https://truststore.pki.rds.amazonaws.com/us-east-1/us-east-1-bundle.pem</span></code></pre></div>
 </div>
 </div>
 </div>
