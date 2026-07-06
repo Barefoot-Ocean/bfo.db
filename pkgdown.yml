@@ -3,7 +3,7 @@ pkgdown: 2.2.0
 pkgdown_sha: ~
 articles:
   getting-started: getting-started.html
-last_built: 2026-06-09T16:08Z
+last_built: 2026-07-06T12:17Z
 urls:
   reference: https://barefoot-ocean.github.io/bfo.db/reference
   article: https://barefoot-ocean.github.io/bfo.db/articles
