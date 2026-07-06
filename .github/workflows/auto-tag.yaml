@@ -1,0 +1,63 @@
+# Auto-tag a release when the Version in DESCRIPTION changes.
+#
+# On every push to main that touches DESCRIPTION, this reads the `Version:`
+# field and, if no matching `vX.Y.Z` tag exists yet, creates and pushes it
+# (and opens a GitHub Release). Bumping the version in DESCRIPTION is therefore
+# the single action that cuts a release — no manual `git tag` needed.
+name: auto-tag
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - DESCRIPTION
+  workflow_dispatch:   # allow running it by hand from the Actions tab
+
+permissions:
+  contents: write      # needed to push tags and create releases
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history + all tags, so the existence check works
+
+      - name: Read version from DESCRIPTION
+        id: ver
+        run: |
+          version=$(grep -i '^Version:' DESCRIPTION | sed -E 's/^Version:[[:space:]]*//' | tr -d '[:space:]')
+          if [ -z "$version" ]; then
+            echo "::error::Could not find a Version: field in DESCRIPTION"; exit 1
+          fi
+          echo "version=$version"      >> "$GITHUB_OUTPUT"
+          echo "tag=v$version"         >> "$GITHUB_OUTPUT"
+          echo "Found version $version (tag v$version)"
+
+      - name: Skip if the tag already exists
+        id: check
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.ver.outputs.tag }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag ${{ steps.ver.outputs.tag }} already exists — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag ${{ steps.ver.outputs.tag }} is new — will create it."
+          fi
+
+      - name: Create and push the tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.ver.outputs.tag }}" -m "Release ${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}"
+
+      - name: Create a GitHub Release
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true   # auto-summarise merged PRs since the last tag
